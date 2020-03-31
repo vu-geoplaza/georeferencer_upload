@@ -56,5 +56,5 @@ Scripts to upload metadata and images to Klokan
     south: Latitude of the south-most point
     east: Longitude of the east-most point
     west: Longitude of the west-most point
-        -> uit de lokale classificatie, zie classificatie_coords.csv
+        -> uit de lokale classificatie, zie classificatie_coords.csv. Dit is dus een zeer ruwe schatting, maar mogelijk nuttig.
 ```
