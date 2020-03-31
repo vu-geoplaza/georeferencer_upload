@@ -2,7 +2,7 @@
 Scripts to upload metadata and images to Klokan
 
 ## Conversion notes
-```
+
     id: Your own unique identifier for each map image. The IDs of images or records in your existing cataloging / publishing system. Later you can use these IDs you supply in our APIs to identify your maps to construct links, etc.
         -> ubvuid
     filename: Name of the uploaded file. It should not contain spaces, nor commas. If you have uploaded images in directories, then this column in the spreadsheet must contain also the name of the folder where the image is located. For example: M001.tiff folder "atlas" will have filename "atlas/M001.tif" - ideally case sensitive.
@@ -57,4 +57,3 @@ Scripts to upload metadata and images to Klokan
     east: Longitude of the east-most point
     west: Longitude of the west-most point
         -> uit de lokale classificatie, zie classificatie_coords.csv. Dit is dus een zeer ruwe schatting, maar mogelijk nuttig.
-```
