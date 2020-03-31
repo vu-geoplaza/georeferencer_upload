@@ -42,13 +42,13 @@ def convert(md, pmd):
 
     if pmd:
         row['id'] = pmd['lok001']
-        row['file'] = '%s.tif' % pmd['lok001']
+        row['filename'] = '%s.tif' % pmd['lok001']
         row['title'] = '%s, uit: %s' % (pmd['title'], md['title'])
         row['link'] = 'http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/%s' % pmd['dmrecord']
         row['viewer']='http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/%s/show/%s' % (md['dmrecord'], pmd['dmrecord'])
     else:
-        row['dmrecord'] = md['dmrecord']
-        row['file'] = '%s.tif' % md['lok001']
+        row['id'] = md['lok001']
+        row['filename'] = '%s.tif' % md['lok001']
         row['title'] = md['title']
         row['link'] = 'http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/%s' % md['dmrecord']
         row['viewer']='http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/%s' % (md['dmrecord'])
@@ -57,7 +57,7 @@ def convert(md, pmd):
 
 # open csv
 with open('ubvu_maps.csv', mode='w', newline='', encoding='utf-8') as csv_file:
-    fieldnames = ['dmrecord', 'title', 'file', 'link', 'dpi', 'viewer', 'date', 'creator', 'publisher', 'scale', 'physical_width', 'physical_height']
+    fieldnames = ['id', 'filename', 'link', 'viewer', 'title', 'date', 'creator', 'publisher', 'physical_width', 'physical_height', 'scale', 'dpi']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
 
