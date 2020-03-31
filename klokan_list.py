@@ -6,9 +6,11 @@ import requests_cache
 requests_cache.install_cache('requests_cache')
 
 # 3557: landgoedkaarten
+# 6743: tmk
 # Globes: '3748','3769','3727','3832','3866','3811','3853','3790','3618'
 IGNORE_LIST = ['3557', '3748', '3769', '3727', '3832', '3866', '3811', '3853', '3790',
-               '3618']  # records that should be skipped
+               '3618', '6743', '2131']  # compound or single records that should be skipped
+IGNORE_PAGE_TITLE_LIST = ['[indexkaart]']
 
 # Get all record ptrs
 nick = 'krt'
@@ -34,7 +36,7 @@ def getGeoClassifications():
 
 
 def getBboxFromClassif(val):
-    bbox=False
+    bbox = False
     if val != '':
         # http://cdm21033.contentdm.oclc.org/oai/oai.php?verb=GetRecord&metadataPrefix=oai_dc&identifier=oai:cdm21033.contentdm.oclc.org:krt/2821
         val = val.replace('81.4.210.110', '80.4.210.110')  # typo
@@ -97,7 +99,9 @@ def convert(md, pmd):
         row['title'] = '%s, uit: %s' % (pmd['title'], md['title'])
         row['link'] = 'http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/%s' % pmd['dmrecord']
         row['viewer'] = 'http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/%s/show/%s' % (
-        md['dmrecord'], pmd['dmrecord'])
+            md['dmrecord'], pmd['dmrecord'])
+        if pmd['title'].lower() in IGNORE_PAGE_TITLE_LIST:
+            row = False
     else:
         row['id'] = md['lok001']
         row['filename'] = '%s.tif' % md['lok001']
@@ -130,18 +134,23 @@ with open('ubvu_maps.csv', mode='w', newline='', encoding='utf-8') as csv_file:
                         for page in cpd['page']:
                             pageptr = page['pageptr']
                             page_metadata = CdmApi.getMetadata(nick, pageptr)
-                            writer.writerow(convert(metadata, page_metadata))
+                            row = convert(metadata, page_metadata)
+                            if row: writer.writerow(row)
                     else:
                         for node in cpd['node']['node']:  # specific case of tmk, could be deeper
                             if type(node['page']) is dict:  # what a shitty data structure
                                 page = node['page']
                                 pageptr = page['pageptr']
                                 page_metadata = CdmApi.getMetadata(nick, pageptr)
-                                writer.writerow(convert(metadata, page_metadata))
+                            row = convert(metadata, page_metadata)
+                            if row: writer.writerow(row)
                             else:
                                 for page in node['page']:
                                     pageptr = page['pageptr']
                                     page_metadata = CdmApi.getMetadata(nick, pageptr)
-                                    writer.writerow(convert(metadata, page_metadata))
+                                    row = convert(metadata, page_metadata)
+                                    if row: writer.writerow(row)
                 else:
-                    writer.writerow(convert(metadata, False))
+                    row = convert(metadata, False)
+                    if row: writer.writerow(row)
+
