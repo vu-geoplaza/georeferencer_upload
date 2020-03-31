@@ -3,6 +3,11 @@ import re
 import CdmApi, pprint
 import requests_cache
 requests_cache.install_cache('requests_cache')
+
+# 3557: landgoedkaarten
+# Globes: '3748','3769','3727','3832','3866','3811','3853','3790','3618'
+IGNORE_LIST = ['3557','3748','3769','3727','3832','3866','3811','3853','3790','3618'] # records that should be skipped
+
 # Get all record ptrs
 nick = 'krt'
 ptrs = CdmApi.getAllPtr(nick)
@@ -27,7 +32,7 @@ def convert(md, pmd):
         row['date'] = ''
 
     row['creator'] = sanitize(md['ggc006'])
-    row['publisher'] = sanitize(md['ggc021'])
+    row['publisher'] = sanitize(md['ggc008'])
     matches=re.findall(r'1:(?:\d|\.)*',sanitize(md['ggc020']))
     if len(matches)>0:
         row['scale']=matches[0]
@@ -64,32 +69,29 @@ with open('ubvu_maps.csv', mode='w', newline='', encoding='utf-8') as csv_file:
     # loop through ptrs and get metadata
     for ptr in ptrs:
         print(ptr)
-        metadata = CdmApi.getMetadata(nick, ptr)
-        if 'code' not in metadata: # some broken items?
-            print(metadata)
-            if CdmApi.isCpd(nick, ptr):
-                cpd = CdmApi.getCpdPages(nick, ptr)
-                n = 0
-                if cpd['type'] != 'Monograph':
-                    for page in cpd['page']:
-                        pageptr = page['pageptr']
-                        page_metadata = CdmApi.getMetadata(nick, pageptr)
-                        writer.writerow(convert(metadata, page_metadata))
-                else:
-                    for node in cpd['node']['node']: # specific case of tmk, could be deeper
-                        if type(node['page']) is dict: # what a shitty data structure
-                            page=node['page']
+        if ptr not in IGNORE_LIST:
+            metadata = CdmApi.getMetadata(nick, ptr)
+            if 'code' not in metadata: # some broken items?
+                print(metadata)
+                if CdmApi.isCpd(nick, ptr):
+                    cpd = CdmApi.getCpdPages(nick, ptr)
+                    n = 0
+                    if cpd['type'] != 'Monograph':
+                        for page in cpd['page']:
                             pageptr = page['pageptr']
                             page_metadata = CdmApi.getMetadata(nick, pageptr)
                             writer.writerow(convert(metadata, page_metadata))
-                        else:
-                            for page in node['page']:
+                    else:
+                        for node in cpd['node']['node']: # specific case of tmk, could be deeper
+                            if type(node['page']) is dict: # what a shitty data structure
+                                page=node['page']
                                 pageptr = page['pageptr']
                                 page_metadata = CdmApi.getMetadata(nick, pageptr)
                                 writer.writerow(convert(metadata, page_metadata))
-            else:
-                writer.writerow(convert(metadata, False))
-
-    # convert needed fields
-
-    # write to csv
+                            else:
+                                for page in node['page']:
+                                    pageptr = page['pageptr']
+                                    page_metadata = CdmApi.getMetadata(nick, pageptr)
+                                    writer.writerow(convert(metadata, page_metadata))
+                else:
+                    writer.writerow(convert(metadata, False))
