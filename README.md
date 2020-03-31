@@ -51,4 +51,10 @@ Scripts to upload metadata and images to Klokan
         
     dpi: The information about scans - for precise estimation of scale in the MapAnalyst
         -> Alles zou op 300dpi gescand moeten zijn
+
+    north: Latitude of the north-most point
+    south: Latitude of the south-most point
+    east: Longitude of the east-most point
+    west: Longitude of the west-most point
+        -> uit de lokale classificatie, zie classificatie_coords.csv
 ```

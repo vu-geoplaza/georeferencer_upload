@@ -132,3 +132,5 @@ dmypy.json
 
 *.sqlite
 .idea
+.idea/
+/.idea
