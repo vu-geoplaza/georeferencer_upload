@@ -33,17 +33,17 @@ def convert(md, pmd):
 
     row['creator'] = sanitize(md['ggc006'])
     row['publisher'] = sanitize(md['ggc008'])
-    matches=re.findall(r'1:(?:\d|\.)*',sanitize(md['ggc020']))
+    matches=re.findall(r'1:(\s{0,1}(?:\d|\.)*)',sanitize(md['ggc020']))
     if len(matches)>0:
-        row['scale']=matches[0]
+        row['scale']=matches[0].replace('.','')
 
     matches=re.findall(r'(\d{1,3}) x (\d{1,3}) cm', sanitize(md['ggc009']))
     if len(matches)==1:
         row['physical_width'] = matches[0][0]
         row['physical_height'] = matches[0][1]
     else:
-        row['physical_width'] = 0
-        row['physical_height'] = 0
+        row['physical_width'] = ''
+        row['physical_height'] = ''
 
     if pmd:
         row['id'] = pmd['lok001']
