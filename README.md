@@ -25,6 +25,7 @@ Scripts to create metadata for Klokan georeferencer
     alternatively for a range of dates: date_from and date_to  (it is possible to fill only the "date" column or only the range of dates using the combination of "date_from" and "date_to" column!)
         -> de eerste 4 getallen in Jaar van Uitgave, indien niet aanwezig: leeg
            ranges komen maar weinig voor en lastig automatisch op te pikken.
+        -->Corrigeer waar nodig handmatig
            
     pubdate: Date of the publication (if known) - a supplement to 'date' to recognize reprints and school atlas maps from true old maps.
     alternatively for a range of dates: pubdate_from and pubdate_to
@@ -37,7 +38,7 @@ Scripts to create metadata for Klokan georeferencer
         -> (Co)auteurs ggc006
         
     contributor: Name of the engraver; NOT "anonymous"
-        --> Hebben wij dit???
+        --> Niet aanwezig
     publisher: Name of the publisher; NOT "anonymous"
         -> Drukker ggc021
         
@@ -45,6 +46,7 @@ Scripts to create metadata for Klokan georeferencer
     physical_height: Physical height of the map in centimeters
         -> test regex '(\d{1,3}) x (\d{1,3}) cm'. Als deze maar 1 keer voorkomt is dit <width> x <height> cm
             Staat vaak meer dan 1 vermelding vanwege verschillende formaten of gevouwen, die zijn nu dus helemaal weggelaten
+         -->Corrigeer waar nodig handmatig
         
     scale: Metric scale denominator; ie. if the scale is 1 meter : 10,000 meters, the value is 10000
         -> Mathematische gegevens, ggc020, gefilterd op string regex 1:(\d|\.)*
