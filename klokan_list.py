@@ -15,12 +15,12 @@ NO_DEEPZOOM = [7244]
 REF_BASE = 'http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/'
 DZ_BASE = 'http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/'
 
-# Get all record ptrs
-nick = 'krt'
-ptrs = CdmApi.getAllPtr(nick)
+def get_geo_classifications():
+    '''
+    Create a dict with the bboxes and names per classiffication code
 
-
-def getGeoClassifications():
+    :return: Dict
+    '''
     classif = {}
     with open('classificatie_coords.csv', encoding='utf-8') as f:
         reader = csv.reader(f)
@@ -38,7 +38,13 @@ def getGeoClassifications():
     return classif
 
 
-def getBboxFromClassif(val):
+def get_bbox_from_classification(val):
+    '''
+    return bbox string belonging to 80.*.* classification code
+
+    :param val: string, metadata value containing 80.*.* classification code
+    :return: string
+    '''
     bbox = False
     if val != '':
         # http://cdm21033.contentdm.oclc.org/oai/oai.php?verb=GetRecord&metadataPrefix=oai_dc&identifier=oai:cdm21033.contentdm.oclc.org:krt/2821
@@ -54,6 +60,12 @@ def getBboxFromClassif(val):
 
 
 def sanitize(val):
+    '''
+    clean up Cdm field value. Somehow empty values are {} in the json output
+
+    :param val: String
+    :return:
+    '''
     # sanitizer for empty fields
     txt = ''
     if not isinstance(val, dict):
@@ -61,23 +73,30 @@ def sanitize(val):
     return txt
 
 
-def convert(md, pmd):
+def convert(metadata, pagemetadata):
+    '''
+    convert Cdm metadata values to klokan values
+
+    :param metadata: dict
+    :param pagemetadata: dict
+    :return: csv row Dict
+    '''
     # convert to csv row
     row = {}
 
     row['dpi'] = 300
 
-    y = re.findall(r'\d{4}', md['ggc002'])
+    y = re.findall(r'\d{4}', metadata['ggc002'])
     if len(y) > 0:
         row['date'] = y[0]  # take first 4 consecutive numbers from JvU
     else:
         row['date'] = ''
 
-    row['creator'] = sanitize(md['ggc006'])
-    row['publisher'] = sanitize(md['ggc008'])
-    ggc015 = sanitize(md['ggc015'])
-    ggc011 = sanitize(md['ggc011'])
-    ggc026 = sanitize(md['ggc026'])
+    row['creator'] = sanitize(metadata['ggc006'])
+    row['publisher'] = sanitize(metadata['ggc008'])
+    ggc015 = sanitize(metadata['ggc015'])
+    ggc011 = sanitize(metadata['ggc011'])
+    ggc026 = sanitize(metadata['ggc026'])
     # -> Titelvariant (ggc015) + Annotatie geografische gegevens (ggc026) + Annotatie (ggc011)
     d = []
     if ggc015 != '':
@@ -88,11 +107,11 @@ def convert(md, pmd):
         d.append('Annotatie geografische gegevens: %s' % ggc026)
     row['description'] = '; '.join(d)
 
-    matches = re.findall(r'1:(\s{0,1}(?:\d|\.)*)', sanitize(md['ggc020']))
+    matches = re.findall(r'1:(\s{0,1}(?:\d|\.)*)', sanitize(metadata['ggc020']))
     if len(matches) > 0:
         row['scale'] = matches[0].replace('.', '')
 
-    matches = re.findall(r'(\d{1,3}) x (\d{1,3}) cm', sanitize(md['ggc009']))
+    matches = re.findall(r'(\d{1,3}) x (\d{1,3}) cm', sanitize(metadata['ggc009']))
     if len(matches) == 1:
         row['physical_width'] = matches[0][0]
         row['physical_height'] = matches[0][1]
@@ -100,33 +119,36 @@ def convert(md, pmd):
         row['physical_width'] = ''
         row['physical_height'] = ''
 
-    bbox = getBboxFromClassif(sanitize(md['ggc053']))
+    bbox = get_bbox_from_classification(sanitize(metadata['ggc053']))
     # "Europa;West Europa;Nederland","(O 3 - O 8 /N 54 - N 50)","8,50,3,54",445,80.4.210
     if bbox:
         c = bbox.split(',')
-        row['north'] = c[3]
-        row['south'] = c[1]
         row['east'] = c[0]
+        row['south'] = c[1]
         row['west'] = c[2]
+        row['north'] = c[3]
 
-    ubvuid = sanitize(pmd['lok001']) if pmd else sanitize(md['lok001'])
+    ubvuid = sanitize(pagemetadata['lok001']) if pagemetadata else sanitize(metadata['lok001'])
     row['id'] = ubvuid
     row['filename'] = '%s.tif' % ubvuid
 
-    row['title'] = '%s, uit: %s' % (pmd['title'], md['title']) if pmd else md['title']
-    row['link'] = '%s%s' % (REF_BASE, pmd['dmrecord']) if pmd else '%s%s' % (REF_BASE, md['dmrecord'])
+    row['title'] = '%s, uit: %s' % (pagemetadata['title'], metadata['title']) if pagemetadata else metadata['title']
+    row['link'] = '%s%s' % (REF_BASE, pagemetadata['dmrecord']) if pagemetadata else '%s%s' % (REF_BASE, metadata['dmrecord'])
 
-    if int(md['dmrecord']) not in NO_DEEPZOOM:
-        row['viewer'] = '%s%s/show/%s' % (DZ_BASE, md['dmrecord'], pmd['dmrecord']) if pmd else '%s%s' % (
-        DZ_BASE, md['dmrecord'])
+    if int(metadata['dmrecord']) not in NO_DEEPZOOM:
+        row['viewer'] = '%s%s/show/%s' % (DZ_BASE, metadata['dmrecord'], pagemetadata['dmrecord']) if pagemetadata else '%s%s' % (
+            DZ_BASE, metadata['dmrecord'])
 
-    if (pmd and pmd['title'].lower() in IGNORE_PAGE_TITLE_LIST) or ubvuid == '':
+    if (pagemetadata and pagemetadata['title'].lower() in IGNORE_PAGE_TITLE_LIST) or ubvuid == '':
         row = False
 
     return row
 
 
-classif = getGeoClassifications()
+classif = get_geo_classifications()
+# Get all record ptrs
+nick = 'krt'
+ptrs = CdmApi.getAllPtr(nick)
 
 # open csv
 with open('ubvu_maps.csv', mode='w', newline='', encoding='utf-8') as csv_file:
