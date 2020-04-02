@@ -1,5 +1,5 @@
 # georeferencer_upload
-Scripts to upload metadata and images to Klokan
+Scripts to create metadata for Klokan georeferencer
 
 ## Conversion notes
 
