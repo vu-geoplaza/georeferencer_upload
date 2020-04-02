@@ -31,7 +31,7 @@ Scripts to upload metadata and images to Klokan
         -> Hebben wij volgens mij niet, facsimiles hebben meestal de originele datum
         
     description: Description of what is on the map as a simple text, ie. not HTML, not entity escaped
-        -> TODO
+        -> Titelvariant (ggc015) + Annotatie geografische gegevens (ggc026) + Annotatie (ggc011) 
          
     creator: Name of the cartographer, surveyor, etc.; NOT "anonymous"
         -> (Co)auteurs ggc006

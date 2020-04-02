@@ -1,16 +1,19 @@
 import csv
 import re
-import CdmApi, pprint
+import CdmApi
 import requests_cache
 
 requests_cache.install_cache('requests_cache')
 
 # 3557: landgoedkaarten
-# 6743: tmk
-# Globes: '3748','3769','3727','3832','3866','3811','3853','3790','3618'
-IGNORE_LIST = ['3557', '3748', '3769', '3727', '3832', '3866', '3811', '3853', '3790',
-               '3618', '6743', '2131']  # compound or single records that should be skipped
+# 6743, 2131: tmk
+# Globes: 3748, 3769, 3727, 3832, 3866, 3811, 3853, 3790,3618,3794
+IGNORE_LIST = [3748, 3769, 3727, 3832, 3866, 3811, 3853, 3790,
+               3618, 3794]  # compound or single records that should be skipped
 IGNORE_PAGE_TITLE_LIST = ['[indexkaart]']
+NO_DEEPZOOM = [7244]
+REF_BASE = 'http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/'
+DZ_BASE = 'http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/'
 
 # Get all record ptrs
 nick = 'krt'
@@ -72,6 +75,19 @@ def convert(md, pmd):
 
     row['creator'] = sanitize(md['ggc006'])
     row['publisher'] = sanitize(md['ggc008'])
+    ggc015 = sanitize(md['ggc015'])
+    ggc011 = sanitize(md['ggc011'])
+    ggc026 = sanitize(md['ggc026'])
+    # -> Titelvariant (ggc015) + Annotatie geografische gegevens (ggc026) + Annotatie (ggc011)
+    d = []
+    if ggc015 != '':
+        d.append('titelvariant: %s' % ggc015)
+    if ggc011 != '':
+        d.append('Annotatie: %s' % ggc011)
+    if ggc026 != '':
+        d.append('Annotatie geografische gegevens: %s' % ggc026)
+    row['description'] = '; '.join(d)
+
     matches = re.findall(r'1:(\s{0,1}(?:\d|\.)*)', sanitize(md['ggc020']))
     if len(matches) > 0:
         row['scale'] = matches[0].replace('.', '')
@@ -93,21 +109,20 @@ def convert(md, pmd):
         row['east'] = c[0]
         row['west'] = c[2]
 
-    if pmd:
-        row['id'] = pmd['lok001']
-        row['filename'] = '%s.tif' % pmd['lok001']
-        row['title'] = '%s, uit: %s' % (pmd['title'], md['title'])
-        row['link'] = 'http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/%s' % pmd['dmrecord']
-        row['viewer'] = 'http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/%s/show/%s' % (
-            md['dmrecord'], pmd['dmrecord'])
-        if pmd['title'].lower() in IGNORE_PAGE_TITLE_LIST:
-            row = False
-    else:
-        row['id'] = md['lok001']
-        row['filename'] = '%s.tif' % md['lok001']
-        row['title'] = md['title']
-        row['link'] = 'http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/%s' % md['dmrecord']
-        row['viewer'] = 'http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/%s' % (md['dmrecord'])
+    ubvuid = sanitize(pmd['lok001']) if pmd else sanitize(md['lok001'])
+    row['id'] = ubvuid
+    row['filename'] = '%s.tif' % ubvuid
+
+    row['title'] = '%s, uit: %s' % (pmd['title'], md['title']) if pmd else md['title']
+    row['link'] = '%s%s' % (REF_BASE, pmd['dmrecord']) if pmd else '%s%s' % (REF_BASE, md['dmrecord'])
+
+    if int(md['dmrecord']) not in NO_DEEPZOOM:
+        row['viewer'] = '%s%s/show/%s' % (DZ_BASE, md['dmrecord'], pmd['dmrecord']) if pmd else '%s%s' % (
+        DZ_BASE, md['dmrecord'])
+
+    if (pmd and pmd['title'].lower() in IGNORE_PAGE_TITLE_LIST) or ubvuid == '':
+        row = False
+
     return row
 
 
@@ -115,7 +130,8 @@ classif = getGeoClassifications()
 
 # open csv
 with open('ubvu_maps.csv', mode='w', newline='', encoding='utf-8') as csv_file:
-    fieldnames = ['id', 'filename', 'link', 'viewer', 'title', 'date', 'creator', 'publisher', 'physical_width',
+    fieldnames = ['id', 'filename', 'link', 'viewer', 'title', 'date', 'description', 'creator', 'publisher',
+                  'physical_width',
                   'physical_height', 'scale', 'dpi', 'north', 'south', 'east', 'west']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
@@ -135,7 +151,8 @@ with open('ubvu_maps.csv', mode='w', newline='', encoding='utf-8') as csv_file:
                             pageptr = page['pageptr']
                             page_metadata = CdmApi.getMetadata(nick, pageptr)
                             row = convert(metadata, page_metadata)
-                            if row: writer.writerow(row)
+                            if row:
+                                writer.writerow(row)
                     else:
                         for node in cpd['node']['node']:  # specific case of tmk, could be deeper
                             if type(node['page']) is dict:  # what a shitty data structure
@@ -143,14 +160,16 @@ with open('ubvu_maps.csv', mode='w', newline='', encoding='utf-8') as csv_file:
                                 pageptr = page['pageptr']
                                 page_metadata = CdmApi.getMetadata(nick, pageptr)
                             row = convert(metadata, page_metadata)
-                            if row: writer.writerow(row)
+                            if row:
+                                writer.writerow(row)
                             else:
                                 for page in node['page']:
                                     pageptr = page['pageptr']
                                     page_metadata = CdmApi.getMetadata(nick, pageptr)
                                     row = convert(metadata, page_metadata)
-                                    if row: writer.writerow(row)
+                                    if row:
+                                        writer.writerow(row)
                 else:
                     row = convert(metadata, False)
-                    if row: writer.writerow(row)
-
+                    if row:
+                        writer.writerow(row)
